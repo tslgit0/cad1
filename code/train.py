@@ -16,6 +16,7 @@ from sklearn.metrics import confusion_matrix
 from tensorboardX import SummaryWriter
 from torchvision.datasets import ImageFolder
 from sklearn.model_selection import train_test_split
+PATH='/home/cad429/code/panda/model'
 bc=128
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 transform = transforms.Compose([
@@ -109,3 +110,4 @@ def train(model,train_loader):
 
 
 train(model,train_loader)
+torch.save(model.state_dict(),PATH)
