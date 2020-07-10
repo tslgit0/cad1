@@ -133,145 +133,58 @@ class PandaDataset(Dataset):
         sample = {'img': image, 'label': int(self.img_list[idx][3]),'patch_name':self.img_list[idx][1],'image_name':self.img_list[idx][2]}
 
         return sample
+#测试dataset 数据经过切割 生成一个 patch_name image_name的csv
+#写一个读取图片的函数
+def read_png(root_path,patch_name):
+    img=cv.imread()
+    return img
 
+class PandaTestDataset(Dataset):
+    def __init__(self, root_dir, path, transform=None):
+        """
+        做初始化
+        """
+        self.root_dir = root_dir
+        self.path = path
+
+        self.img_list = []
+        #读出图片，每读出一个，保存为c_list
+        #读csv
+        #读图片
+
+        for 读csv:
+            c_list=[read_png(root_path,patch_name=),patch_name,image_name]
+            self.img_list += c_list
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.img_list)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        img_path = self.img_list[idx][0]
+        image = Image.open(img_path).convert('RGB')
+
+        if self.transform:
+            image = self.transform(image)
+        sample = {'img': image, 'patch_name':self.img_list[idx][1],'image_name':self.img_list[idx][2]}
+
+        return sample
 
 
     
-if __name__ == '__main__':
-    trainset = CovidCTDataset(root_dir='new_data/4.4_image',
-                              txt_COVID='new_data/newtxt/train.txt',
-                              txt_NonCOVID='old_data/oldtxt/trainCT_NonCOVID.txt',
-                              transform= train_transformer)
-    valset = CovidCTDataset(root_dir='new_data/4.4_image',
-                              txt_COVID='new_data/newtxt/val.txt',
-                              txt_NonCOVID='old_data/oldtxt/valCT_NonCOVID.txt',
-                              transform= val_transformer)
-    testset = CovidCTDataset(root_dir='new_data/4.4_image',
-                              txt_COVID='new_data/newtxt/test.txt',
-                              txt_NonCOVID='old_data/oldtxt/testCT_NonCOVID.txt',
-                              transform= val_transformer)
-    print(trainset.__len__())
-    print(valset.__len__())
+
+testset = PandaDataset(root_dir='new_data/4.4_image',
+                          txt_COVID='new_data/newtxt/test.txt',
+                          txt_NonCOVID='old_data/oldtxt/testCT_NonCOVID.txt',
+                          transform= val_transformer)
     print(testset.__len__())
 
-    train_loader = DataLoader(trainset, batch_size=batchsize, drop_last=False, shuffle=True)
-    val_loader = DataLoader(valset, batch_size=batchsize, drop_last=False, shuffle=False)
-    test_loader = DataLoader(testset, batch_size=batchsize, drop_last=False, shuffle=False)
+
+test_loader = DataLoader(testset, batch_size=batchsize, drop_last=False, shuffle=False)
     
-
-
-# In[31]:
-
-
-# for batch_index, batch_samples in enumerate(train_dataloader):      
-#         data, target = batch_samples[0], batch_samples[1]
-# skimage.io.imshow(data[0,1,:,:].numpy())
-
-
-# In[154]:
-
-
-alpha = None
-device = 'cuda'
-def train(optimizer, epoch):
-    
-    model.train()
-    
-    train_loss = 0
-    train_correct = 0
-    
-    for batch_index, batch_samples in enumerate(train_loader):
-        
-        # move data to device
-        data, target = batch_samples['img'].to(device), batch_samples['label'].to(device)
-#        data = data[:, 0, :, :]
-#        data = data[:, None, :, :]
-#         data, targets_a, targets_b, lam = mixup_data(data, target.long(), alpha, use_cuda=True)
-        
-        
-        optimizer.zero_grad()
-        output = model(data)
-        
-        criteria = nn.CrossEntropyLoss()
-        loss = criteria(output, target.long())
-#         loss = mixup_criterion(criteria, output, targets_a, targets_b, lam)
-        train_loss += criteria(output, target.long())
-        
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        
-        pred = output.argmax(dim=1, keepdim=True)
-        train_correct += pred.eq(target.long().view_as(pred)).sum().item()
-    
-        # Display progress and write to tensorboard
-        if batch_index % bs == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tTrain Loss: {:.6f}'.format(
-                epoch, batch_index, len(train_loader),
-                100.0 * batch_index / len(train_loader), loss.item()/ bs))
-    
-    print('\nTrain set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        train_loss/len(train_loader.dataset), train_correct, len(train_loader.dataset),
-        100.0 * train_correct / len(train_loader.dataset)))
-    f = open('model_result/{}.txt'.format(modelname), 'a+')
-    f.write('\nTrain set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        train_loss/len(train_loader.dataset), train_correct, len(train_loader.dataset),
-        100.0 * train_correct / len(train_loader.dataset)))
-    f.write('\n')
-    f.close()
-
-
-# In[155]:
-
-
-def val(epoch):
-    
-    model.eval()
-    test_loss = 0
-    correct = 0
-    results = []
-    
-    TP = 0
-    TN = 0
-    FN = 0
-    FP = 0
-    
-    
-    criteria = nn.CrossEntropyLoss()
-    # Don't update model
-    with torch.no_grad():
-        tpr_list = []
-        fpr_list = []
-        
-        predlist=[]
-        scorelist=[]
-        targetlist=[]
-        # Predict
-        for batch_index, batch_samples in enumerate(val_loader):
-            data, target = batch_samples['img'].to(device), batch_samples['label'].to(device)
-#            data = data[:, 0, :, :]
-#            data = data[:, None, :, :]
-            output = model(data)
-            
-            test_loss += criteria(output, target.long())
-            score = F.softmax(output, dim=1)
-            pred = output.argmax(dim=1, keepdim=True)
-#             print('target',target.long()[:, 2].view_as(pred))
-            correct += pred.eq(target.long().view_as(pred)).sum().item()
-            
-#             print(output[:,1].cpu().numpy())
-#             print((output[:,1]+output[:,0]).cpu().numpy())
-#             predcpu=(output[:,1].cpu().numpy())/((output[:,1]+output[:,0]).cpu().numpy())
-            targetcpu=target.long().cpu().numpy()
-            predlist=np.append(predlist, pred.cpu().numpy())
-            scorelist=np.append(scorelist, score.cpu().numpy()[:,1])
-            targetlist=np.append(targetlist,targetcpu)
-           
-          
-    return targetlist, scorelist, predlist
-
-
-# In[152]:
 
 
 def test(epoch):
@@ -297,106 +210,29 @@ def test(epoch):
         scorelist=[]
         targetlist=[]
         # Predict
+        lis = []
+        li = []
         for batch_index, batch_samples in enumerate(test_loader):
-            data, target = batch_samples['img'].to(device), batch_samples['label'].to(device)
-#            data = data[:, 0, :, :]
-#            data = data[:, None, :, :]
-#             print(target)
+
+
+            data, patch_name,image_name = batch_samples['img'].to(device), batch_samples['patch_name'],batch_samples['image_name'],
             output = model(data)
             
             test_loss += criteria(output, target.long())
             score = F.softmax(output, dim=1)
             pred = output.argmax(dim=1, keepdim=True)
+            pred = pred.cpu().numpy()
+            for i in range (len(pred)):
+                li=[pred[i],patch_name[i],image_name[i]]
+                lis.append(li)
 #             print('target',target.long()[:, 2].view_as(pred))
-            correct += pred.eq(target.long().view_as(pred)).sum().item()
-#             TP += ((pred == 1) & (target.long()[:, 2].view_as(pred).data == 1)).cpu().sum()
-#             TN += ((pred == 0) & (target.long()[:, 2].view_as(pred) == 0)).cpu().sum()
-# #             # FN    predict 0 label 1
-#             FN += ((pred == 0) & (target.long()[:, 2].view_as(pred) == 1)).cpu().sum()
-# #             # FP    predict 1 label 0
-#             FP += ((pred == 1) & (target.long()[:, 2].view_as(pred) == 0)).cpu().sum()
-#             print(TP,TN,FN,FP)
-            
-            
-#             print(output[:,1].cpu().numpy())
-#             print((output[:,1]+output[:,0]).cpu().numpy())
-#             predcpu=(output[:,1].cpu().numpy())/((output[:,1]+output[:,0]).cpu().numpy())
-            targetcpu=target.long().cpu().numpy()
-            predlist=np.append(predlist, pred.cpu().numpy())
-            scorelist=np.append(scorelist, score.cpu().numpy()[:,1])
-            targetlist=np.append(targetlist,targetcpu)
-           
+
     return targetlist, scorelist, predlist
     
     # Write to tensorboard
 #     writer.add_scalar('Test Accuracy', 100.0 * correct / len(test_loader.dataset), epoch)
 
 
-# In[46]:
-
-
-# %CheXNet pretrain
-# class DenseNet121(nn.Module):
-#     """Model modified.
-
-#     The architecture of our model is the same as standard DenseNet121
-#     except the classifier layer which has an additional sigmoid function.
-
-#     """
-#     def __init__(self, out_size):
-#         super(DenseNet121, self).__init__()
-#         self.densenet121 = torchvision.models.densenet121(pretrained=True)
-#         num_ftrs = self.densenet121.classifier.in_features
-#         self.densenet121.classifier = nn.Sequential(
-#             nn.Linear(num_ftrs, out_size),
-#             nn.Sigmoid()
-#         )
-
-#     def forward(self, x):
-#         x = self.densenet121(x)
-#         return x
-  
-
-# device = 'cuda'
-# CKPT_PATH = 'model.pth.tar'
-# N_CLASSES = 14
-
-# DenseNet121 = DenseNet121(N_CLASSES).cuda()
-
-# CKPT_PATH = './CheXNet/model.pth.tar'
-
-# if os.path.isfile(CKPT_PATH):
-#     checkpoint = torch.load(CKPT_PATH)        
-#     state_dict = checkpoint['state_dict']
-#     remove_data_parallel = False
-
-
-#     pattern = re.compile(
-#         r'^(.*denselayer\d+\.(?:norm|relu|conv))\.((?:[12])\.(?:weight|bias|running_mean|running_var))$')
-#     for key in list(state_dict.keys()):
-#         match = pattern.match(key)
-#         new_key = match.group(1) + match.group(2) if match else key
-#         new_key = new_key[7:] if remove_data_parallel else new_key
-#         new_key = new_key[7:]
-#         state_dict[new_key] = state_dict[key]
-#         del state_dict[key]
-
-
-#     DenseNet121.load_state_dict(checkpoint['state_dict'])
-#     print("=> loaded checkpoint")
-# #     print(densenet121)
-# else:
-#     print("=> no checkpoint found")
-
-# # for parma in DenseNet121.parameters():
-# #         parma.requires_grad = False
-# DenseNet121.densenet121.classifier._modules['0'] = nn.Linear(in_features=1024, out_features=2, bias=True)
-# DenseNet121.densenet121.features.conv0 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-# # print(DenseNet121)
-# model = DenseNet121.to(device)
-
-
-# In[149]:
 
 
 ### DenseNet
